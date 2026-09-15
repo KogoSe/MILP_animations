@@ -1,0 +1,10 @@
+# Virtual environments & cache
+.venv/
+__pycache__/
+media/
+
+# Environment & package lock files
+.python-version
+pyproject.toml
+uv.lock
+README.md
