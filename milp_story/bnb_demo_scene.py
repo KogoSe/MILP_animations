@@ -5,8 +5,15 @@ Everything in this file is hardcoded/illustrative. No solver, no PuLP, no
 CBC, no real optimization is performed anywhere — every number below is
 invented purely to make the animation's narrative arc land cleanly:
 
-  ROWS -> CUTS -> GROUPS -> TREE -> BRANCH -> BOUND -> PRUNE -> NEW BEST
-  -> FINAL PATH -> SOLUTION
+  ROWS -> CUTS -> GROUPS -> ROW DECISION -> TREE -> BRANCH -> BOUND
+  -> PRUNE -> NEW BEST -> FINAL PATH -> SOLUTION
+
+The branch-and-bound tree below is not abstract filler: it branches on the
+real *kind* of decision this problem has (which pairing a 2-source row
+uses), it just explores a small hand-picked slice of it (4 of the 6
+pairing options for ROW 3, then 2 of the 6 for ROW 4) so the animation
+stays legible. All LB / BEST / search-space numbers are invented to make
+the pruning story land cleanly — they do not represent a real run.
 
 Run:
     manim -pql bnb_demo_scene.py BranchAndBoundStory
@@ -48,6 +55,22 @@ def glow(mobject, color=CYAN, layers=3, spread=0.12, opacity=0.35):
     return halo
 
 
+def candidate_cloud(center, n=12, radius=0.42, color=NEUTRAL_LINE):
+    """A cluster of tiny dots around `center` — visual shorthand for
+    'this node still represents many possible solutions', not one."""
+    dots = VGroup()
+    golden_angle = 137.5 * DEGREES
+    for i in range(n):
+        r = radius * np.sqrt((i + 0.5) / n)
+        theta = i * golden_angle
+        pos = np.array(center) + np.array([r * np.cos(theta), r * np.sin(theta), 0])
+        d = Dot(point=pos, radius=0.028, color=color, fill_opacity=0.85)
+        dots.add(d)
+    return dots
+
+
+PAIR_OPTIONS = ["AB", "AC", "AD", "BC", "BD", "CD"]
+
 # ══════════════════════════════════════════════════════════════════════
 #  hardcoded illustrative data
 # ══════════════════════════════════════════════════════════════════════
@@ -67,28 +90,46 @@ CUT_CANDIDATES = [
 ]
 BEST_CUT_INDEX = 1
 
-# hardcoded branch-and-bound tree (see module docstring — fully invented)
-# each node: id, parent, depth, x, lb, kind: "prune" | "new_best" | "open"
+# ── the branch-and-bound tree: GROUP 2 = {ROW 3, ROW 4}, both 2-source.
+# Root branches on ROW 3's pairing (4 of 6 options shown); the surviving
+# branches then branch again on ROW 4's pairing. Every LB / prune / new-best
+# below was chosen by hand to make a clean, honest-looking DFS story —
+# fully invented, not computed. ──
+TREE_Y = {0: 2.6, 1: 1.2, 2: -0.35}
+
 TREE = [
-    {"id": "root", "parent": None, "depth": 0, "x": 0.0, "lb": None, "kind": "open"},
-    {"id": "A", "parent": "root", "depth": 1, "x": -3.0, "lb": 78, "kind": "open"},
-    {"id": "B", "parent": "root", "depth": 1, "x": 3.0, "lb": 88, "kind": "prune"},
-    {"id": "A0", "parent": "A", "depth": 2, "x": -4.6, "lb": 97, "kind": "new_best"},
-    {"id": "A1", "parent": "A", "depth": 2, "x": -3.6, "lb": 94, "kind": "new_best"},
-    {"id": "A2", "parent": "A", "depth": 2, "x": -2.6, "lb": 91, "kind": "open"},
-    {"id": "A3", "parent": "A", "depth": 2, "x": -1.6, "lb": 99, "kind": "prune"},
-    {"id": "A2a", "parent": "A2", "depth": 3, "x": -3.0, "lb": 101, "kind": "prune"},
-    {"id": "A2b", "parent": "A2", "depth": 3, "x": -2.2, "lb": 82, "kind": "new_best"},
+    {"id": "root", "parent": None, "depth": 0, "x": 0.0, "lb": None, "kind": "root"},
+    {"id": "AB", "parent": "root", "depth": 1, "x": -4.5, "lb": 91, "kind": "open", "pick": "AB"},
+    {"id": "AC", "parent": "root", "depth": 1, "x": -1.5, "lb": 99, "kind": "prune_subtree", "pick": "AC"},
+    {"id": "BC", "parent": "root", "depth": 1, "x": 1.5, "lb": 91, "kind": "open", "pick": "BC"},
+    {"id": "CD", "parent": "root", "depth": 1, "x": 4.5, "lb": 78, "kind": "open", "pick": "CD"},
+
+    {"id": "AB-AB", "parent": "AB", "depth": 2, "x": -5.3, "lb": 97, "kind": "new_best", "pick": "AB"},
+    {"id": "AB-CD", "parent": "AB", "depth": 2, "x": -3.7, "lb": 94, "kind": "new_best", "pick": "CD"},
+
+    {"id": "BC-AB", "parent": "BC", "depth": 2, "x": 0.7, "lb": 101, "kind": "prune", "pick": "AB"},
+    {"id": "BC-CD", "parent": "BC", "depth": 2, "x": 2.3, "lb": 90, "kind": "new_best", "pick": "CD"},
+
+    {"id": "CD-AB", "parent": "CD", "depth": 2, "x": 3.7, "lb": 85, "kind": "new_best", "pick": "AB"},
+    {"id": "CD-AC", "parent": "CD", "depth": 2, "x": 5.3, "lb": 82, "kind": "new_best", "pick": "AC"},
 ]
-FINAL_PATH = ["root", "A", "A2", "A2b"]
+BY_ID = {n["id"]: n for n in TREE}
+L1_IDS = ["AB", "AC", "BC", "CD"]
+FINAL_PATH = ["root", "CD", "CD-AC"]
 M_STAR = 82
+
+# illustrative-only, invented, shrinks as branches get eliminated
+SEARCH_SPACE_STEPS = [1728, 1296, 864, 432]
 
 FINAL_GROUPS = [
     ("GROUP 1", [("ROW 1", "AB"), ("ROW 2", "4-SOURCE")]),
     ("GROUP 2", [("ROW 3", "CD"), ("ROW 4", "AC")]),
 ]
 
-TREE_Y = {0: 2.7, 1: 1.35, 2: 0.0, 3: -1.35}
+
+def pos_of(node_id):
+    n = BY_ID[node_id]
+    return np.array([n["x"], TREE_Y[n["depth"]], 0.0])
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -118,16 +159,20 @@ def create_group_region(x_left, x_right, y, height, color):
     return rect
 
 
-def create_node(pos, radius=0.26, kind="open"):
+def create_node(pos, radius=0.26, kind="open", pick=None):
     fill = NEUTRAL
     stroke = NEUTRAL_LINE
-    if kind == "prune":
+    if kind in ("prune", "prune_subtree"):
         fill, stroke = DIM, PRUNE_RED
     elif kind == "new_best":
         fill, stroke = NEUTRAL, GOLD
     c = Circle(radius=radius, fill_color=fill, fill_opacity=1, stroke_color=stroke, stroke_width=2.5)
     c.move_to(pos)
-    return c
+    if pick:
+        txt = data_text(pick, size=11, color=WHITE)
+        txt.move_to(c.get_center())
+        return VGroup(c, txt)
+    return VGroup(c)
 
 
 def create_branch(p1, p2, color=NEUTRAL_LINE, width=2):
@@ -144,21 +189,19 @@ class BranchAndBoundStory(Scene):
         tag.to_corner(UL, buff=0.4)
         self.play(FadeIn(tag, run_time=0.6))
 
-        # ── VO: "we have several load rows that need grouping, and some
-        # of them need a pairing decision" ──
         self.data_stream_entry()
         self.wait(0.2)
 
-        cut_lines, group_rects, best_group_rects = self.grouping_search()
+        cut_lines, group_rects = self.grouping_search()
         self.wait(0.2)
 
-        node_mobs, branch_mobs, hud = self.transform_to_tree(group_rects)
+        node_mobs, branch_mobs, hud, space_hud = self.bridge_to_pairing_tree(group_rects)
         self.wait(0.2)
 
-        self.grow_tree(node_mobs, branch_mobs, hud)
+        self.grow_tree(node_mobs, branch_mobs, hud, space_hud)
         self.wait(0.2)
 
-        self.collapse_to_final_path(node_mobs, branch_mobs, hud)
+        self.collapse_to_final_path(node_mobs, branch_mobs)
         self.wait(0.3)
 
         self.final_solution()
@@ -167,8 +210,8 @@ class BranchAndBoundStory(Scene):
     # ────────────────────────────────────────────────────────────────
     def data_stream_entry(self):
         # VO:
-        # "เรามีหลายแถวโหลดที่ต้องจัดกลุ่ม
-        #  และบางแถวต้องตัดสินใจเลือก pairing"
+        # "We have several load rows that need to be grouped,
+        #  and some of them still need a pairing decision."
         spine = Line(LEFT * 6.5, RIGHT * 6.5, color=DIM, stroke_width=1.5)
         spine.move_to(UP * 1.5)
         self.play(Create(spine), run_time=0.6)
@@ -221,12 +264,17 @@ class BranchAndBoundStory(Scene):
             x = (cards[i].get_right()[0] + cards[i + 1].get_left()[0]) / 2
             gaps.append(x)
 
+        intro = label("TESTING WHERE TO CUT THE ROW SEQUENCE", size=16, color=GRAY_B)
+        intro.next_to(cards, UP, buff=0.7)
+        self.play(FadeIn(intro, shift=UP * 0.1), run_time=0.4)
+
         cuts = VGroup(*[create_cut(x, y + 1.0, y - 1.0) for x in gaps])
         cuts.set_opacity(0)
         self.play(FadeIn(cuts, run_time=0.4))
         for c in cuts:
             self.play(c.animate.set_opacity(0.8), run_time=0.25)
             self.play(c.animate.set_opacity(0.35), run_time=0.25)
+        self.play(FadeOut(intro), run_time=0.3)
 
         left_edge = cards[0].get_left()[0] - 0.3
         right_edge = cards[-1].get_right()[0] + 0.3
@@ -238,9 +286,6 @@ class BranchAndBoundStory(Scene):
         right_num = data_text("", size=30, color=GROUP_B, weight=BOLD)
 
         self.play(FadeIn(left_rect), FadeIn(right_rect), run_time=0.4)
-
-        winner_left_rect = winner_right_rect = None
-        winner_left_num = winner_right_num = None
 
         for idx, (cut_i, wl, wr) in enumerate(CUT_CANDIDATES):
             split_x = gaps[cut_i - 1]
@@ -263,15 +308,12 @@ class BranchAndBoundStory(Scene):
             self.wait(0.35)
             if idx != BEST_CUT_INDEX:
                 self.play(active_cut.animate.set_opacity(0.25).set_stroke(CYAN), run_time=0.3)
-            else:
-                winner_left_rect, winner_right_rect = new_left, new_right
-                winner_left_num, winner_right_num = new_left_num, new_right_num
 
         for i, c in enumerate(cuts):
             if i != BEST_CUT_INDEX:
                 self.play(c.animate.set_opacity(0.08), run_time=0.3)
 
-        best_tag = label("BEST GROUPING", size=18, color=GOLD, weight=BOLD)
+        best_tag = label("BEST GROUPING — WORST CASE MINIMIZED", size=18, color=GOLD, weight=BOLD)
         best_tag.next_to(cards, UP, buff=1.25)
         self.play(
             cuts[BEST_CUT_INDEX].animate.set_stroke(width=4),
@@ -284,43 +326,98 @@ class BranchAndBoundStory(Scene):
 
         self.group_left_num = left_num
         self.group_right_num = right_num
-        return cuts, (left_rect, right_rect), (winner_left_rect, winner_right_rect)
+
+        bridge = label("GROUPING IS FIXED. NOW: THE PAIRING INSIDE EACH GROUP.", size=17, color=GRAY_A)
+        bridge.next_to(cards, UP, buff=0.7)
+        self.play(FadeIn(bridge, shift=UP * 0.1), run_time=0.4)
+        self.wait(0.6)
+        self.play(FadeOut(bridge), run_time=0.3)
+
+        return cuts, (left_rect, right_rect)
 
     # ────────────────────────────────────────────────────────────────
-    def transform_to_tree(self, group_rects):
-        left_rect, right_rect = group_rects
+    def bridge_to_pairing_tree(self, group_rects):
+        """Point 8: explicitly transform ONE real row decision into the
+        root of the search tree, instead of conjuring the tree from
+        nowhere. ROW 3 is the row this tree actually explores."""
         cards = self.cards
-        cuts_and_labels = VGroup(self.group_left_num, self.group_right_num)
-
-        root_pos = np.array([0.0, TREE_Y[0], 0.0])
-        a_pos = np.array([TREE[1]["x"], TREE_Y[1], 0.0])
-        b_pos = np.array([TREE[2]["x"], TREE_Y[1], 0.0])
+        left_rect, right_rect = group_rects
+        number_labels = VGroup(self.group_left_num, self.group_right_num)
+        row3_card = cards[2]
+        other_cards = VGroup(*[c for i, c in enumerate(cards) if i != 2])
 
         self.play(
-            FadeOut(cards), FadeOut(cuts_and_labels),
+            FadeOut(other_cards), FadeOut(number_labels),
+            FadeOut(left_rect), FadeOut(right_rect),
+            run_time=0.5,
+        )
+        self.play(row3_card.animate.scale(1.15).move_to(UP * 2.0), run_time=0.6, rate_func=rate_functions.ease_in_out_cubic)
+
+        q = label("ROW 3 NEEDS A PAIRING DECISION", size=18, color=CYAN)
+        q.next_to(row3_card, DOWN, buff=0.35)
+        self.play(FadeIn(q, shift=UP * 0.1), run_time=0.4)
+
+        chips = VGroup(*[
+            RoundedRectangle(corner_radius=0.06, width=0.85, height=0.42,
+                              fill_color=DIM, fill_opacity=1, stroke_color=NEUTRAL_LINE, stroke_width=1.5)
+            for _ in PAIR_OPTIONS
+        ])
+        chip_labels = VGroup(*[data_text(p, size=15, color=INK) for p in PAIR_OPTIONS])
+        for chip, txt in zip(chips, chip_labels):
+            txt.move_to(chip)
+        chip_group = VGroup(*[VGroup(c, t) for c, t in zip(chips, chip_labels)])
+        chip_group.arrange(RIGHT, buff=0.22)
+        chip_group.next_to(q, DOWN, buff=0.4)
+
+        self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.1) for c in chip_group], lag_ratio=0.08), run_time=0.8)
+        self.play(LaggedStart(*[Indicate(c, color=CYAN, scale_factor=1.15) for c in chip_group], lag_ratio=0.06), run_time=0.9)
+        self.wait(0.2)
+
+        kept_idx = [PAIR_OPTIONS.index(pid) for pid in L1_IDS]
+        dropped = VGroup(*[chip_group[i] for i in range(6) if i not in kept_idx])
+        kept = [chip_group[i] for i in kept_idx]
+        self.play(dropped.animate.set_opacity(0.12), run_time=0.35)
+
+        note = label("(4 of 6 pairings shown here to keep this legible)", size=13, color=GRAY_C)
+        note.next_to(chip_group, DOWN, buff=0.25)
+        self.play(FadeIn(note), run_time=0.3)
+
+        # collapse ROW 3 card into the root node, kept chips fly down into L1
+        root_pos = pos_of("root")
+        root_node = create_node(root_pos, radius=0.22, kind="root")
+        self.play(
+            FadeOut(q), FadeOut(note), FadeOut(dropped),
+            ReplacementTransform(row3_card, root_node),
             run_time=0.6,
         )
 
-        root_node = create_node(root_pos, radius=0.22, kind="open")
-        a_node = create_node(a_pos, radius=0.26, kind="open")
-        b_node = create_node(b_pos, radius=0.26, kind="open")  # bound (88) < current best (100): stays open for now
+        cloud = candidate_cloud(root_pos, n=12, color=NEUTRAL_LINE)
+        self.play(FadeIn(cloud, scale=0.6), run_time=0.4)
 
-        self.play(
-            ReplacementTransform(left_rect, a_node),
-            ReplacementTransform(right_rect, b_node),
-            run_time=0.8, rate_func=rate_functions.ease_in_out_cubic,
-        )
-        self.play(FadeIn(root_node, scale=0.5), run_time=0.4)
+        branch_label = label("ROW 3 PAIRING?", size=16, color=GRAY_A)
+        branch_label.next_to(root_node, DOWN, buff=0.35).shift(LEFT * 0.0)
+        branch_label.move_to([0, (TREE_Y[0] + TREE_Y[1]) / 2 + 0.15, 0])
+        self.play(FadeIn(branch_label), run_time=0.3)
 
-        branch_a = create_branch(root_pos, a_pos)
-        branch_b = create_branch(root_pos, b_pos)
-        self.play(Create(branch_a), Create(branch_b), run_time=0.6)
+        l1_targets = [pos_of(nid) for nid in L1_IDS]
+        branches = VGroup(*[create_branch(root_pos, t) for t in l1_targets])
+        self.play(LaggedStart(*[Create(b) for b in branches], lag_ratio=0.15), run_time=0.9)
 
-        lb_a = data_text(f"LB {TREE[1]['lb']}", size=16, color=GRAY_A).next_to(a_node, DOWN, buff=0.15)
-        lb_b = data_text(f"LB {TREE[2]['lb']}", size=16, color=GRAY_A).next_to(b_node, DOWN, buff=0.15)
-        self.play(FadeIn(lb_a), FadeIn(lb_b), run_time=0.4)
+        # candidate cloud splits: one node = many possibilities -> branching
+        # divides that set (point 1 + point 8 combined)
+        mini_clouds = self.split_cloud_to_children(cloud, l1_targets, per_child=3)
 
-        # HUD
+        self.play(FadeOut(branch_label), run_time=0.3)
+
+        l1_nodes = {}
+        l1_labels_grp = VGroup()
+        for nid, chip, target in zip(L1_IDS, kept, l1_targets):
+            n = BY_ID[nid]
+            node = create_node(target, radius=0.26, kind="open", pick=n["pick"])
+            self.play(ReplacementTransform(chip, node), run_time=0.35)
+            l1_nodes[nid] = node
+
+        # HUD: BEST
         hud_box = RoundedRectangle(corner_radius=0.08, width=2.0, height=0.9,
                                     stroke_color=NEUTRAL_LINE, stroke_width=1.5, fill_color="#101216", fill_opacity=0.9)
         hud_box.to_corner(UR, buff=0.4)
@@ -329,107 +426,153 @@ class BranchAndBoundStory(Scene):
         hud_value = data_text("M = 100", size=26, color=GOLD, weight=BOLD)
         hud_value.move_to(hud_box.get_center() + DOWN * 0.15)
         hud = VGroup(hud_box, hud_label, hud_value)
-        self.play(FadeIn(hud, shift=DOWN * 0.15), run_time=0.5)
 
-        node_mobs = {"root": root_node, "A": a_node, "B": b_node}
-        node_labels = {"A": lb_a, "B": lb_b}
-        branch_mobs = {"root-A": branch_a, "root-B": branch_b}
+        # HUD: SEARCH SPACE
+        space_box = RoundedRectangle(corner_radius=0.08, width=2.0, height=0.9,
+                                      stroke_color=NEUTRAL_LINE, stroke_width=1.5, fill_color="#101216", fill_opacity=0.9)
+        space_box.next_to(hud_box, DOWN, buff=0.25)
+        space_label = label("SEARCH SPACE", size=11, color=GRAY_B)
+        space_label.move_to(space_box.get_center() + UP * 0.22)
+        space_value = data_text(f"{SEARCH_SPACE_STEPS[0]:,}", size=20, color=CYAN, weight=BOLD)
+        space_value.move_to(space_box.get_center() + DOWN * 0.15)
+        space_hud = VGroup(space_box, space_label, space_value)
 
-        # B's bound (88) is still below the starting BEST (100) here, so it
-        # stays open — DFS visits A's whole subtree first (dropping BEST all
-        # the way to 82) before B ever gets its bound re-checked in grow_tree().
-        return (node_mobs, node_labels), branch_mobs, hud
+        self.play(FadeIn(hud, shift=DOWN * 0.15), FadeIn(space_hud, shift=DOWN * 0.15), run_time=0.5)
+
+        node_mobs = {"root": root_node, **l1_nodes}
+        branch_mobs = {f"root-{nid}": br for nid, br in zip(L1_IDS, branches)}
+        self.mini_clouds = dict(zip(L1_IDS, mini_clouds))
+
+        return node_mobs, branch_mobs, hud, space_hud
 
     # ────────────────────────────────────────────────────────────────
-    def grow_tree(self, node_bundle, branch_mobs, hud):
-        node_mobs, node_labels = node_bundle
+    def split_cloud_to_children(self, cloud, child_centers, per_child=3):
+        n_children = len(child_centers)
+        anims = []
+        groups = [VGroup() for _ in range(n_children)]
+        for i, dot in enumerate(cloud):
+            child_idx = i % n_children
+            ring_i = i // n_children
+            angle = ring_i * (TAU / max(per_child, 1)) + child_idx * 0.7
+            offset = 0.22 * np.array([np.cos(angle), np.sin(angle), 0])
+            target = np.array(child_centers[child_idx]) + offset + DOWN * 0.35
+            anims.append(dot.animate.move_to(target).scale(0.75))
+            groups[child_idx].add(dot)
+        self.play(LaggedStart(*anims, lag_ratio=0.03), run_time=0.7)
+        return groups
+
+    # ────────────────────────────────────────────────────────────────
+    def show_bound_check(self, node, lb, best, will_prune):
+        """Point 3: make LB-vs-BEST visually causal instead of implied."""
+        cmp_symbol = "≥" if will_prune else "<"
+        color = PRUNE_RED if will_prune else CYAN
+        txt = data_text(f"LB {lb}  {cmp_symbol}  BEST {best}", size=15, color=color)
+        txt.next_to(node, UP, buff=0.16)
+        ring = Circle(radius=0.34, stroke_color=color, stroke_width=2, fill_opacity=0)
+        ring.move_to(node.get_center())
+        self.play(FadeIn(txt, shift=UP * 0.05), FadeIn(ring), run_time=0.22)
+        self.wait(0.2)
+        self.play(FadeOut(txt), FadeOut(ring), run_time=0.2)
+
+    # ────────────────────────────────────────────────────────────────
+    def drop_search_space(self, space_hud, step_idx):
+        space_value = space_hud[2]
+        new_val = data_text(f"{SEARCH_SPACE_STEPS[step_idx]:,}", size=20, color=CYAN, weight=BOLD)
+        new_val.move_to(space_value.get_center())
+        self.play(Transform(space_value, new_val), run_time=0.3)
+        self.play(space_hud[0].animate.set_stroke(color=PRUNE_RED), run_time=0.15)
+        self.play(space_hud[0].animate.set_stroke(color=NEUTRAL_LINE), run_time=0.25)
+
+    # ────────────────────────────────────────────────────────────────
+    def grow_tree(self, node_mobs, branch_mobs, hud, space_hud):
         hud_value = hud[2]
+        node_labels = {}
         current_best = 100
+        space_step = 0
 
-        by_id = {n["id"]: n for n in TREE}
+        def make_lb(nid, size=14):
+            n = BY_ID[nid]
+            t = data_text(f"LB {n['lb']}", size=size, color=GRAY_A)
+            t.next_to(node_mobs[nid], DOWN, buff=0.12)
+            return t
 
-        def pos_of(node_id):
-            n = by_id[node_id]
-            return np.array([n["x"], TREE_Y[n["depth"]], 0.0])
+        for nid in L1_IDS:
+            lb_lbl = make_lb(nid)
+            node_labels[nid] = lb_lbl
+            self.play(FadeIn(lb_lbl), node_mobs[nid].animate.set_stroke(width=3.5), run_time=0.25)
+            self.play(node_mobs[nid].animate.set_stroke(width=2.5), run_time=0.15)
 
-        # expand A's children: A0, A1, A2, A3
-        a_children = ["A0", "A1", "A2", "A3"]
-        self.play(node_mobs["A"].animate.set_stroke(width=4), rate_func=there_and_back, run_time=0.3)
+        for nid in L1_IDS:
+            n = BY_ID[nid]
+            node = node_mobs[nid]
+            lb_lbl = node_labels[nid]
 
-        branches = VGroup()
-        for cid in a_children:
-            br = create_branch(pos_of("A"), pos_of(cid))
-            branches.add(br)
-        self.play(LaggedStart(*[Create(b) for b in branches], lag_ratio=0.15), run_time=0.9)
+            will_prune = n["lb"] >= current_best
+            self.show_bound_check(node, n["lb"], current_best, will_prune)
 
-        for cid, br in zip(a_children, branches):
-            n = by_id[cid]
-            node = create_node(pos_of(cid), radius=0.22, kind="open")
-            self.play(FadeIn(node, scale=0.4), run_time=0.25)
-            self.play(node.animate.scale(1.15), rate_func=there_and_back, run_time=0.25)
+            if n["kind"] == "prune_subtree":
+                self.prune_with_subtree_reveal(nid, node, branch_mobs[f"root-{nid}"], lb_lbl)
+                space_step += 1
+                self.drop_search_space(space_hud, space_step)
+                if nid in self.mini_clouds:
+                    self.play(self.mini_clouds[nid].animate.set_opacity(0.08), run_time=0.3)
+                continue
 
-            lb_lbl = data_text(f"LB {n['lb']}", size=14, color=GRAY_A)
-            lb_lbl.next_to(node, DOWN, buff=0.12)
-            self.play(FadeIn(lb_lbl), run_time=0.2)
+            # open: expand into ROW 4 pairing choices
+            self.play(self.mini_clouds[nid].animate.set_opacity(0.15), run_time=0.25)
+            children = [c["id"] for c in TREE if c["parent"] == nid]
+            branch_label = label("ROW 4 PAIRING?", size=13, color=GRAY_A)
+            branch_label.move_to([n["x"], (TREE_Y[1] + TREE_Y[2]) / 2 + 0.1, 0])
+            self.play(FadeIn(branch_label), run_time=0.25)
 
-            node_mobs[cid] = node
-            node_labels[cid] = lb_lbl
-            branch_mobs[f"A-{cid}"] = br
+            child_branches = VGroup()
+            for cid in children:
+                br = create_branch(pos_of(nid), pos_of(cid))
+                child_branches.add(br)
+                branch_mobs[f"{nid}-{cid}"] = br
+            self.play(LaggedStart(*[Create(b) for b in child_branches], lag_ratio=0.2), run_time=0.5)
+            self.play(FadeOut(branch_label), run_time=0.2)
 
-            if n["kind"] == "new_best":
-                current_best = n["lb"]
-                self.new_best_flash(node, hud_value, current_best)
-                if cid == "A2":
-                    pass
-            elif n["kind"] == "prune":
-                self.prune_node(node, br, lb_lbl, compare_best=current_best)
-            else:
-                # "A2": open, will expand further below
-                pass
+            for cid in children:
+                cn = BY_ID[cid]
+                cnode = create_node(pos_of(cid), radius=0.2, kind="open", pick=cn["pick"])
+                node_mobs[cid] = cnode
+                self.play(FadeIn(cnode, scale=0.4), run_time=0.22)
+                clb = make_lb(cid, size=12)
+                node_labels[cid] = clb
+                self.play(FadeIn(clb), run_time=0.18)
 
-        # expand A2's children: A2a, A2b
-        a2_children = ["A2a", "A2b"]
-        self.play(node_mobs["A2"].animate.set_stroke(width=4), rate_func=there_and_back, run_time=0.3)
-        branches2 = VGroup()
-        for cid in a2_children:
-            br = create_branch(pos_of("A2"), pos_of(cid))
-            branches2.add(br)
-        self.play(LaggedStart(*[Create(b) for b in branches2], lag_ratio=0.2), run_time=0.7)
+                child_prune = cn["lb"] >= current_best
+                self.show_bound_check(cnode, cn["lb"], current_best, child_prune)
 
-        for cid, br in zip(a2_children, branches2):
-            n = by_id[cid]
-            node = create_node(pos_of(cid), radius=0.2, kind="open")
-            self.play(FadeIn(node, scale=0.4), run_time=0.25)
-            lb_lbl = data_text(f"LB {n['lb']}", size=13, color=GRAY_A)
-            lb_lbl.next_to(node, DOWN, buff=0.1)
-            self.play(FadeIn(lb_lbl), run_time=0.2)
-
-            node_mobs[cid] = node
-            node_labels[cid] = lb_lbl
-            branch_mobs[f"A2-{cid}"] = br
-
-            if n["kind"] == "prune":
-                self.prune_node(node, br, lb_lbl, compare_best=current_best)
-            elif n["kind"] == "new_best":
-                current_best = n["lb"]
-                self.new_best_flash(node, hud_value, current_best)
-
-        # A's whole subtree is done (BEST is now as low as it will get from
-        # this branch) — DFS backtracks to sibling B and re-checks its bound
-        # against the now-much-lower BEST. 88 >= 82: the entire B subtree
-        # never needed to be opened at all.
-        self.play(node_mobs["B"].animate.set_stroke(width=4), rate_func=there_and_back, run_time=0.3)
-        self.prune_node(node_mobs["B"], branch_mobs["root-B"], node_labels["B"], compare_best=current_best)
+                if child_prune:
+                    self.prune_node(cnode, branch_mobs[f"{nid}-{cid}"], clb)
+                    space_step += 1
+                    self.drop_search_space(space_hud, space_step)
+                else:
+                    current_best = cn["lb"]
+                    self.new_best_flash(cnode, hud_value, current_best)
 
         self.current_best = current_best
         self.node_mobs = node_mobs
         self.node_labels = node_labels
         self.branch_mobs = branch_mobs
         self.hud = hud
+        self.space_hud = space_hud
+
+        # nothing left in the search space can beat 82 — the remaining
+        # (unshown) pairing options collapse in one final illustrative step
+        final_note = label("REMAINING OPTIONS CANNOT BEAT THE CURRENT BEST", size=14, color=GRAY_C)
+        final_note.to_edge(DOWN, buff=0.4)
+        self.play(FadeIn(final_note), run_time=0.3)
+        space_step += 1
+        self.drop_search_space(space_hud, space_step)
+        self.wait(0.4)
+        self.play(FadeOut(final_note), run_time=0.3)
 
     # ────────────────────────────────────────────────────────────────
     def new_best_flash(self, node, hud_value, new_value):
-        ring = Circle(radius=node.radius * 1.8, stroke_color=GOLD, stroke_width=3, fill_opacity=0)
+        ring = Circle(radius=0.4, stroke_color=GOLD, stroke_width=3, fill_opacity=0)
         ring.move_to(node.get_center())
         self.play(
             node.animate.set_stroke(GOLD, width=3),
@@ -444,7 +587,7 @@ class BranchAndBoundStory(Scene):
         self.play(Transform(hud_value, new_hud), run_time=0.25)
         self.play(hud_value.animate.scale(1.15), rate_func=there_and_back, run_time=0.3)
 
-    def prune_node(self, node, branch, lb_label, compare_best=None):
+    def prune_node(self, node, branch, lb_label):
         self.play(node.animate.shift(RIGHT * 0.04), run_time=0.05)
         self.play(node.animate.shift(LEFT * 0.08), run_time=0.05)
         self.play(node.animate.shift(RIGHT * 0.04), run_time=0.05)
@@ -459,9 +602,50 @@ class BranchAndBoundStory(Scene):
             run_time=0.3,
         )
 
+    def prune_with_subtree_reveal(self, nid, node, branch, lb_label):
+        """Point 4: before pruning an INTERNAL node, briefly reveal the
+        descendants it would have had, so eliminating it visibly reads as
+        'we just removed a whole subtree', not just one point."""
+        n = BY_ID[nid]
+        ghost_offsets = [LEFT * 0.7, RIGHT * 0.7]
+        ghost_y = TREE_Y[2]
+        ghost_nodes = VGroup()
+        ghost_branches = VGroup()
+        for off in ghost_offsets:
+            gpos = np.array([n["x"], ghost_y, 0]) + off
+            gnode = Circle(radius=0.15, stroke_color=NEUTRAL_LINE, stroke_width=1.5,
+                            fill_color=NEUTRAL, fill_opacity=0.5)
+            gnode.move_to(gpos)
+            gbranch = create_branch(node.get_center(), gpos, color=NEUTRAL_LINE, width=1.5)
+            ghost_nodes.add(gnode)
+            ghost_branches.add(gbranch)
+
+        self.play(
+            LaggedStart(*[Create(b) for b in ghost_branches], lag_ratio=0.15),
+            LaggedStart(*[FadeIn(g, scale=0.5) for g in ghost_nodes], lag_ratio=0.15),
+            run_time=0.5,
+        )
+        whole = VGroup(node, ghost_nodes, ghost_branches)
+        self.play(whole.animate.set_opacity(1.0), Flash(node.get_center(), color=PRUNE_RED, line_length=0.15), run_time=0.3)
+
+        self.play(node.animate.shift(RIGHT * 0.05), run_time=0.05)
+        self.play(node.animate.shift(LEFT * 0.1), run_time=0.05)
+        self.play(node.animate.shift(RIGHT * 0.05), run_time=0.05)
+
+        x = Cross(scale_factor=0.16, stroke_color=PRUNE_RED, stroke_width=4)
+        x.move_to(node.get_center())
+        self.play(Create(x), run_time=0.25)
+        self.play(
+            node.animate.set_fill(opacity=0.3).set_stroke(PRUNE_RED, opacity=0.5),
+            branch.animate.set_stroke(opacity=0.2),
+            lb_label.animate.set_color(PRUNE_RED).set_opacity(0.5),
+            ghost_nodes.animate.set_opacity(0.12),
+            ghost_branches.animate.set_stroke(opacity=0.1),
+            run_time=0.4,
+        )
+
     # ────────────────────────────────────────────────────────────────
-    def collapse_to_final_path(self, node_bundle, branch_mobs, hud):
-        node_mobs, node_labels = node_bundle
+    def collapse_to_final_path(self, node_mobs, branch_mobs):
         path_ids = FINAL_PATH
         keep = set(path_ids)
 
@@ -469,20 +653,16 @@ class BranchAndBoundStory(Scene):
         for nid, mob in node_mobs.items():
             if nid not in keep:
                 dim_anims.append(mob.animate.set_opacity(0.15))
-        for nid, mob in node_labels.items():
+        for nid, mob in self.node_labels.items():
             if nid not in keep:
                 dim_anims.append(mob.animate.set_opacity(0.1))
         for key, br in branch_mobs.items():
-            a, b = key.split("-")[-2:] if "-" in key else (key, key)
+            a, b = key.split("-", 1)
             if not (a in keep and b in keep):
                 dim_anims.append(br.animate.set_opacity(0.08))
+        for cloud in self.mini_clouds.values():
+            dim_anims.append(cloud.animate.set_opacity(0.05))
         self.play(*dim_anims, run_time=0.8)
-
-        by_id = {n["id"]: n for n in TREE}
-
-        def pos_of(node_id):
-            n = by_id[node_id]
-            return np.array([n["x"], TREE_Y[n["depth"]], 0.0])
 
         path_edges = VGroup()
         for i in range(len(path_ids) - 1):
@@ -491,18 +671,14 @@ class BranchAndBoundStory(Scene):
         self.play(LaggedStart(*[Create(e) for e in path_edges], lag_ratio=0.25), run_time=1.0)
 
         star = Star(n=5, outer_radius=0.22, color=GOLD, fill_opacity=1, stroke_width=0)
-        star.move_to(node_mobs["A2b"].get_center())
+        star.move_to(node_mobs["CD-AC"].get_center())
         halo = glow(star, color=GOLD, layers=3, spread=0.15, opacity=0.5)
         self.play(
-            ReplacementTransform(node_mobs["A2b"], star),
+            ReplacementTransform(node_mobs["CD-AC"], star),
             FadeIn(halo),
             run_time=0.6,
         )
         self.play(star.animate.scale(1.3), rate_func=there_and_back, run_time=0.4)
-
-        self.final_star = star
-        self.final_halo = halo
-        self.path_group = VGroup(*[node_mobs[n] for n in path_ids[:-1]], path_edges, star, halo)
 
     # ────────────────────────────────────────────────────────────────
     def final_solution(self):
