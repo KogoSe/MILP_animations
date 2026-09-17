@@ -28,6 +28,30 @@ SCENE03 = {
     "pairs": ["AB", "AC", "AD", "BC", "BD", "CD"],
 }
 
+# Scene 07 -- Section 2 of scene07_prompt.md
+SCENE07 = {
+    "pieces": [
+        {"name": "Row 5", "pair": "AB", "share_tex": "0", "kw": 300,
+         "switch_tex": "q_{5,2,AB}", "switch_kind": "q", "piece": 0},
+        {"name": "Row 6", "pair": "4-source", "share_tex": r"\tfrac{1}{3}", "kw": 450,
+         "switch_tex": "y_{6,2}", "switch_kind": "y", "piece": 150},
+        {"name": "Row 7", "pair": "CD", "share_tex": r"\tfrac{1}{2}", "kw": 800,
+         "switch_tex": "q_{7,2,CD}", "switch_kind": "q", "piece": 400},
+        {"name": "Row 8", "pair": "AC", "share_tex": "1", "kw": 800,
+         "switch_tex": "q_{8,2,AC}", "switch_kind": "q", "piece": 800},
+    ],
+    "total": 1350,
+    "row7_pairs": {
+        "AB": {"reason": "no C", "share_tex": "0", "share_val": 0, "switch": 0, "product": 0},
+        "AC": {"reason": "partner", "share_tex": "1", "share_val": 1, "switch": 0, "product": 0},
+        "AD": {"reason": "no C", "share_tex": "0", "share_val": 0, "switch": 0, "product": 0},
+        "BC": {"reason": "no A", "share_tex": r"\tfrac{1}{2}", "share_val": 0.5, "switch": 0, "product": 0},
+        "BD": {"reason": "no C", "share_tex": "0", "share_val": 0, "switch": 0, "product": 0},
+        "CD": {"reason": "no A", "share_tex": r"\tfrac{1}{2}", "share_val": 0.5, "switch": 1, "product": 400},
+    },
+    "n_load_equations": 24,
+}
+
 # Scene 06 -- Section 2 of scene06_prompt.md
 SCENE06 = {
     "pair_order": ["AB", "AC", "AD", "BC", "BD", "CD"],
