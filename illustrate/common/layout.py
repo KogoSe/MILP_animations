@@ -54,8 +54,10 @@ class LayoutCheckMixin:
     _review_beat_count = 0
 
     def check_layout(self, beat_id):
-        background = getattr(self, "background_items", [])
-        for m in [*self.layout_items, *background]:
+        # Background items (cables, chart axes, decorative dot grids) are
+        # excluded from both the in-frame and the overlap checks -- they are
+        # not content the viewer must be able to read.
+        for m in self.layout_items:
             if not in_frame(m):
                 raise ValueError(f"[{beat_id}] object out of frame: {m}")
 

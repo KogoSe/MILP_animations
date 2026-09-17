@@ -72,10 +72,10 @@ def restore_anims(ups_grp):
     return anims
 
 
-def pair_chip(pair, font=24):
+def pair_chip(pair, font=24, pad=0.2):
     if pair == "ABCD":
         txt = Tex("ABCD", font_size=font, color=SECONDARY_COLOR)
-        box = RoundedRectangle(width=txt.width + 0.3, height=txt.height + 0.2,
+        box = RoundedRectangle(width=txt.width + 0.3, height=txt.height + pad,
                                 corner_radius=0.08, stroke_color=SECONDARY_COLOR, stroke_width=2)
         box.move_to(txt.get_center())
         grp = VGroup(box, txt)
@@ -86,7 +86,7 @@ def pair_chip(pair, font=24):
     t1 = Tex(l1, font_size=font, color=UPS_COLORS[l1])
     t2 = Tex(l2, font_size=font, color=UPS_COLORS[l2])
     letters = VGroup(t1, t2).arrange(RIGHT, buff=0.08)
-    box = RoundedRectangle(width=letters.width + 0.3, height=letters.height + 0.2,
+    box = RoundedRectangle(width=letters.width + 0.3, height=letters.height + pad,
                             corner_radius=0.08, stroke_color=TEXT_COLOR, stroke_width=2)
     box.move_to(letters.get_center())
     grp = VGroup(box, letters)
