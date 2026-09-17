@@ -28,6 +28,18 @@ SCENE03 = {
     "pairs": ["AB", "AC", "AD", "BC", "BD", "CD"],
 }
 
+# Scene 06 -- Section 2 of scene06_prompt.md
+SCENE06 = {
+    "pair_order": ["AB", "AC", "AD", "BC", "BD", "CD"],
+    "t1_two_groups": [1, 1, 1, 1, 1, 0, 0, 0],
+    "y1_two_groups": [1, 1, 1, 1, 1, 0, 0, 0],
+    "y2_two_groups": [0, 0, 0, 0, 0, 1, 1, 1],
+    "t1_broken": [1, 1, 1, 1, 1, 0, 1, 0],
+    "t1_three_groups": [1, 1, 1, 0, 0, 0, 0, 0],
+    "t2_three_groups": [1, 1, 1, 1, 1, 1, 0, 0],
+    "y2_three_groups": [0, 0, 0, 1, 1, 1, 0, 0],
+}
+
 # cut_after k -> (Group 1 kW, Group 2 kW)
 GROUP_TOTALS = {
     1: (500, 3980),
