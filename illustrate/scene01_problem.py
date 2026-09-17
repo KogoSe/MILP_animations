@@ -11,22 +11,14 @@ and that no two registered items overlap (except allowed overlaps).
 Run with:
     manim -pqh scene01_problem.py Scene01Problem
 """
-import os
-
 from manim import *
 
-# --------------------------------------------------------------- style ---
-BG_COLOR = "#0a0e1a"
-TEXT_COLOR = "#e6e9ef"
-SECONDARY_COLOR = "#8a93a6"
-RACK_FILL = "#2a3550"
-RACK_STROKE = "#4a5878"
-UPS_COLORS = {"A": "#00d4ff", "B": "#ffaa00", "C": "#a66cff", "D": "#3ddc84"}
-FAIL_FILL = "#3a3f4b"
-FAIL_COLOR = "#ff3b3b"
-HL_COLOR = "#ffe600"
-
-UPS_NAMES = ["A", "B", "C", "D"]
+from common.style import (
+    BG_COLOR, TEXT_COLOR, SECONDARY_COLOR, UPS_COLORS, UPS_NAMES,
+    FAIL_FILL, FAIL_COLOR, HL_COLOR, ROW_FILL as RACK_FILL, ROW_STROKE as RACK_STROKE,
+)
+from common.layout import caption, in_frame, boxes_overlap, LayoutCheckMixin
+from common.data import fmt_kw
 
 # ---------------------------------------------------------------- data ---
 ROWS = [
@@ -35,44 +27,6 @@ ROWS = [
     {"name": "Row 3", "kw": 480, "type": "2-source"},
     {"name": "Row 4", "kw": 550, "type": "2-source"},
 ]
-
-REVIEW = True
-REVIEW_DIR = os.path.join(os.path.dirname(__file__), "review")
-
-
-def fmt_kw(x):
-    if float(x).is_integer():
-        return f"{int(x)} kW"
-    return f"{x:.1f} kW"
-
-
-# -------------------------------------------------------------- layout ---
-def caption(text):
-    t = Tex(text, font_size=34, color=TEXT_COLOR)
-    if t.width > 12.5:
-        t.scale_to_fit_width(12.5)
-        if t.font_size < 28:
-            raise ValueError(f"Caption too long even at font 28: {text!r}")
-    t.move_to([0, -3.25, 0])
-    return t
-
-
-def in_frame(m, margin=0.4):
-    return (
-        m.get_left()[0] >= -config.frame_width / 2 + margin
-        and m.get_right()[0] <= config.frame_width / 2 - margin
-        and m.get_bottom()[1] >= -config.frame_height / 2 + margin
-        and m.get_top()[1] <= config.frame_height / 2 - margin
-    )
-
-
-def boxes_overlap(a, b, pad=0.05):
-    return not (
-        a.get_right()[0] + pad <= b.get_left()[0]
-        or b.get_right()[0] + pad <= a.get_left()[0]
-        or a.get_top()[1] + pad <= b.get_bottom()[1]
-        or b.get_top()[1] + pad <= a.get_bottom()[1]
-    )
 
 
 def make_ups_box(letter, w=1.2, h=0.7, font_size=26):
@@ -106,12 +60,9 @@ def make_cable(start, corner1, corner2, end, color):
     )
 
 
-class Scene01Problem(MovingCameraScene):
+class Scene01Problem(LayoutCheckMixin, MovingCameraScene):
     def construct(self):
         self.camera.background_color = BG_COLOR
-        if REVIEW:
-            os.makedirs(REVIEW_DIR, exist_ok=True)
-        self._beat_count = 0
         self.current_caption = None
 
         self.beat_1_1_floor_plan()
@@ -133,27 +84,6 @@ class Scene01Problem(MovingCameraScene):
         self.play(FadeIn(new_cap))
         self.current_caption = new_cap
         return new_cap
-
-    def check_layout(self, beat_id):
-        background = getattr(self, "background_items", [])
-        for m in [*self.layout_items, *background]:
-            if not in_frame(m):
-                raise ValueError(f"[{beat_id}] object out of frame: {m}")
-        n = len(self.layout_items)
-        for i in range(n):
-            for j in range(i + 1, n):
-                a, b = self.layout_items[i], self.layout_items[j]
-                if (i, j) in self.allowed_overlaps or (j, i) in self.allowed_overlaps:
-                    continue
-                if boxes_overlap(a, b):
-                    raise ValueError(f"[{beat_id}] overlap between item {i} and item {j}")
-        if REVIEW:
-            self._beat_count += 1
-            path = os.path.join(REVIEW_DIR, f"scene01_beat_{self._beat_count:02d}.png")
-            self.camera.frame.save_state()
-            self.renderer.camera.save_image_to(path) if hasattr(
-                self.renderer.camera, "save_image_to"
-            ) else None
 
     # ===================================================== Beat 1.1 =====
     def beat_1_1_floor_plan(self):
