@@ -6,7 +6,7 @@ from manim import (
 )
 
 from .style import (
-    TEXT_COLOR, SECONDARY_COLOR, UPS_COLORS, UPS_NAMES,
+    BG_COLOR, TEXT_COLOR, SECONDARY_COLOR, UPS_COLORS, UPS_NAMES,
     FAIL_FILL, FAIL_COLOR, ROW_FILL, ROW_STROKE, CUT_COLOR,
 )
 from .data import fmt_kw
@@ -73,10 +73,15 @@ def restore_anims(ups_grp):
 
 
 def pair_chip(pair, font=24, pad=0.2):
+    # fill_color/fill_opacity are set explicitly (even though the chip is
+    # meant to be stroke-only) because Manim's shape default fill_color is
+    # its brand red at opacity 0 -- a later .animate.set_opacity() call
+    # anywhere up the VGroup chain would otherwise reveal it.
     if pair == "ABCD":
         txt = Tex("ABCD", font_size=font, color=SECONDARY_COLOR)
         box = RoundedRectangle(width=txt.width + 0.3, height=txt.height + pad,
-                                corner_radius=0.08, stroke_color=SECONDARY_COLOR, stroke_width=2)
+                                corner_radius=0.08, stroke_color=SECONDARY_COLOR, stroke_width=2,
+                                fill_color=BG_COLOR, fill_opacity=0)
         box.move_to(txt.get_center())
         grp = VGroup(box, txt)
         grp.box, grp.letters = box, txt
@@ -87,7 +92,8 @@ def pair_chip(pair, font=24, pad=0.2):
     t2 = Tex(l2, font_size=font, color=UPS_COLORS[l2])
     letters = VGroup(t1, t2).arrange(RIGHT, buff=0.08)
     box = RoundedRectangle(width=letters.width + 0.3, height=letters.height + pad,
-                            corner_radius=0.08, stroke_color=TEXT_COLOR, stroke_width=2)
+                            corner_radius=0.08, stroke_color=TEXT_COLOR, stroke_width=2,
+                            fill_color=BG_COLOR, fill_opacity=0)
     box.move_to(letters.get_center())
     grp = VGroup(box, letters)
     grp.box, grp.letters = box, letters
@@ -96,7 +102,8 @@ def pair_chip(pair, font=24, pad=0.2):
 
 def group_frame(mobject, colour, buff=0.1):
     return SurroundingRectangle(mobject, color=colour, buff=buff,
-                                 corner_radius=0.08, stroke_width=2.5)
+                                 corner_radius=0.08, stroke_width=2.5,
+                                 fill_color=BG_COLOR, fill_opacity=0)
 
 
 def cut_line(length, vertical=False):
@@ -106,7 +113,8 @@ def cut_line(length, vertical=False):
 
 
 def power_train(colour):
-    gen_box = Rectangle(width=2.0, height=0.4, stroke_color=colour, stroke_width=2)
+    gen_box = Rectangle(width=2.0, height=0.4, stroke_color=colour, stroke_width=2,
+                         fill_color=BG_COLOR, fill_opacity=0)
     gen_lbl = Tex("Generator", font_size=22, color=TEXT_COLOR)
     if gen_lbl.width > gen_box.width - 0.2:
         gen_lbl.scale_to_fit_width(gen_box.width - 0.2)
