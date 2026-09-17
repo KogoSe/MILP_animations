@@ -1,7 +1,7 @@
 """Reusable mobjects -- common_prompt.md Section 6."""
 from manim import (
     VGroup, Rectangle, RoundedRectangle, Tex, Line, Arrow, DashedLine,
-    SurroundingRectangle, Transform, Create, FadeOut, LEFT, RIGHT, DOWN, UP,
+    SurroundingRectangle, Transform, Create, FadeOut, LEFT, RIGHT, DOWN, UP, ORIGIN,
     UL, DR, DL, UR,
 )
 
@@ -160,3 +160,39 @@ def bar_panel(title_text, values: dict, failed, y_max, bar_width=0.6, max_height
         title_lbl, bars, val_labels, letter_labels,
     )
     return panel
+
+
+def data_table(cell_matrix, col_gap=0.8, row_gap=0.5):
+    """Lay out a 2D list of already-built Mobjects (row 0 is the header) into
+    a table with per-column max-width alignment, so a wide cell in one
+    column never overlaps its neighbours in any row. Positions every cell
+    directly (not via .arrange()), which is the only way to keep columns
+    aligned when row heights/widths vary a lot from row to row."""
+    n_rows = len(cell_matrix)
+    n_cols = len(cell_matrix[0])
+
+    col_widths = [max(cell_matrix[r][c].width for r in range(n_rows)) for c in range(n_cols)]
+    col_x = [0.0]
+    for w in col_widths[:-1]:
+        col_x.append(col_x[-1] + w + col_gap)
+
+    row_heights = [max(cell_matrix[r][c].height for c in range(n_cols)) for r in range(n_rows)]
+    row_y = [0.0]
+    for h in row_heights[:-1]:
+        row_y.append(row_y[-1] - (h + row_gap))
+
+    table = VGroup()
+    row_groups = []
+    for r in range(n_rows):
+        row_vg = VGroup()
+        for c in range(n_cols):
+            cell = cell_matrix[r][c]
+            cell.move_to([col_x[c] + cell.width / 2, row_y[r], 0])
+            row_vg.add(cell)
+        row_groups.append(row_vg)
+        table.add(row_vg)
+
+    table.move_to(ORIGIN)
+    table.header = row_groups[0]
+    table.rows = VGroup(*row_groups[1:])
+    return table

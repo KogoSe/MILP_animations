@@ -497,6 +497,7 @@ class Scene01Problem(LayoutCheckMixin, MovingCameraScene):
                 Tex(fmt_kw(r["kw"]), font_size=32, color=TEXT_COLOR),
                 Tex(r["type"], font_size=32, color=TEXT_COLOR),
             )
+            cells.arrange(RIGHT, buff=1.2)
             data_rows.add(cells)
 
         # align columns using header's x positions

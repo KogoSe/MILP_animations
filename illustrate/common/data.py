@@ -15,6 +15,19 @@ DEMO_ROWS = [
 N_GROUPS = 2
 TOTAL_KW = 4480
 
+# Scene 03 -- Section 2 of scene03_prompt.md
+SCENE03 = {
+    "row1_kw": 500,
+    "row1_type": "2-source",
+    "row1_half_share": 250,
+    "row1_partner_full_share": 500,
+    "row2_kw": 600,
+    "row2_type": "4-source",
+    "row2_quarter_share": 150,
+    "row2_third_share": 200,
+    "pairs": ["AB", "AC", "AD", "BC", "BD", "CD"],
+}
+
 # cut_after k -> (Group 1 kW, Group 2 kW)
 GROUP_TOTALS = {
     1: (500, 3980),
