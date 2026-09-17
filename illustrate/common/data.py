@@ -15,6 +15,31 @@ DEMO_ROWS = [
 N_GROUPS = 2
 TOTAL_KW = 4480
 
+# Scene 08 -- Section 2 of scene08_prompt.md
+SCENE08 = {
+    "loads": [
+        {"label": "L_1", "case": "A fails", "survivor": "B", "kw": 450},
+        {"label": "L_2", "case": "A fails", "survivor": "C", "kw": 1350},
+        {"label": "L_3", "case": "A fails", "survivor": "D", "kw": 550},
+        {"label": "L_4", "case": "D fails", "survivor": "A", "kw": 700},
+        {"label": "L_5", "case": "D fails", "survivor": "B", "kw": 300},
+        {"label": "L_6", "case": "D fails", "survivor": "C", "kw": 1350},
+    ],
+    "m_start": 1700,
+    "m_test_low": 1300,
+    "m_final": 1350,
+    "eps_tie_break": 0.00001,
+    "model_lines": [
+        {"tex": r"\min\ M", "label": "make the worst case small"},
+        {"tex": r"M \ge L_{g,f,u}", "label": "every group, failed UPS, and UPS"},
+        {"tex": r"L_{g,f,u} = \sum c\, kW\, q + \sum \tfrac{kW}{3}\, y", "label": "the load recipe"},
+        {"tex": r"\sum_p q_{i,g,p} = y_{i,g}", "label": "one pair per row, in its group"},
+        {"tex": r"t_{i,g} \ge t_{i+1,g},\quad t_{i,g} \le t_{i,g+1}", "label": "continuous groups"},
+        {"tex": r"y_{i,g} = t_{i,g} - t_{i,g-1}", "label": "which group a row is in"},
+        {"tex": r"t,\ q \in \{0,1\},\quad M \ge 0", "label": "switches"},
+    ],
+}
+
 # Scene 03 -- Section 2 of scene03_prompt.md
 SCENE03 = {
     "row1_kw": 500,
