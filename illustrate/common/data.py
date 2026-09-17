@@ -16,6 +16,21 @@ N_GROUPS = 2
 TOTAL_KW = 4480
 
 # Scene 08 -- Section 2 of scene08_prompt.md
+SCENE11 = {
+    "best": 990,
+    "lb_start": 746.7,
+    "lb_end": 990,
+    "gap_start_pct": 24.6,
+    "gap_end_pct": 0,
+    "app_status": "Optimal (proven)",
+    "optimal_cut_group1": 2430,
+    "optimal_cut_group2": 2050,
+    "floor_this_cut": 810,
+    "floor_any_answer": 746.7,
+    "brute_force_combos": 1296,
+    "brute_force_best": 990,
+}
+
 SCENE08 = {
     "loads": [
         {"label": "L_1", "case": "A fails", "survivor": "B", "kw": 450},
