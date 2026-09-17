@@ -76,7 +76,7 @@ FAULT_TABLE_A_G2 = {
     "D": {"A": 700, "B": 300, "C": 1350},
 }
 FAULT_TABLE_A_G2_CONTRIBUTIONS_A_FAILS = {
-    "Row 5": {"pair": "AB", "share": "0", "to": {}},
+    "Row 5": {"pair": "AB", "share": "1", "to": {"B": 300}},
     "Row 6": {"pair": "ABCD", "share": "1/3", "to": {"B": 150, "C": 150, "D": 150}},
     "Row 7": {"pair": "CD", "share": "1/2", "to": {"C": 400, "D": 400}},
     "Row 8": {"pair": "AC", "share": "1", "to": {"C": 800}},
