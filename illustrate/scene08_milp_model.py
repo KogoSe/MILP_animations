@@ -272,30 +272,53 @@ class Scene08MilpModel(LayoutCheckMixin, Scene):
 
         model_lines = SCENE08["model_lines"]
         eq_ys = [2.20, 1.52, 0.84, 0.16, -0.52, -1.20, -1.88]
-        eq_mobjs = []
-        label_mobjs = []
+        # Per-line colour targets. MathTex.set_color_by_tex only matches an
+        # EXACT isolated substring (via substrings_to_isolate), not any
+        # substring of a single unbroken string -- so each line must list
+        # exactly the tokens that appear in it.
+        line_color_map = [
+            {"M": HL_COLOR},
+            {"M": HL_COLOR},
+            {"q": PAIR_COLOR, "y": GROUP1_COLOR},
+            {"q_{i,g,p}": PAIR_COLOR, "y_{i,g}": GROUP1_COLOR},
+            {"t_{i,g}": GROUP1_COLOR, "t_{i+1,g}": GROUP1_COLOR, "t_{i,g+1}": GROUP1_COLOR},
+            {"y_{i,g}": GROUP1_COLOR, "t_{i,g}": GROUP1_COLOR, "t_{i,g-1}": GROUP1_COLOR},
+            {"t": GROUP1_COLOR, "q": PAIR_COLOR, "M": HL_COLOR},
+        ]
+
+        def build_eqs(font):
+            result = []
+            for idx, (entry, color_map) in enumerate(zip(model_lines, line_color_map)):
+                if idx == 6:
+                    # Isolating bare "q" here would also match the "q" inside
+                    # "\quad", corrupting that LaTeX command -- so this line
+                    # is split into explicit parts instead of relying on
+                    # substrings_to_isolate.
+                    eq = MathTex(
+                        "t", ",\\ ", "q", r"\ \in \{0,1\},\quad ", "M", r"\ \ge 0",
+                        font_size=font,
+                    )
+                    eq.set_color(TEXT_COLOR)
+                    eq.set_color_by_tex("t", GROUP1_COLOR)
+                    eq.set_color_by_tex("q", PAIR_COLOR)
+                    eq.set_color_by_tex("M", HL_COLOR)
+                else:
+                    eq = MathTex(entry["tex"], font_size=font,
+                                  substrings_to_isolate=list(color_map.keys()))
+                    eq.set_color(TEXT_COLOR)
+                    for substr, color in color_map.items():
+                        eq.set_color_by_tex(substr, color)
+                result.append(eq)
+            return result
+
         font = 32
-        for entry in model_lines:
-            eq = MathTex(entry["tex"], font_size=font)
-            eq.set_color(TEXT_COLOR)
-            eq.set_color_by_tex("M", HL_COLOR)
-            eq.set_color_by_tex("q", PAIR_COLOR)
-            eq.set_color_by_tex("t_{i", GROUP1_COLOR)
-            eq.set_color_by_tex("y_{i", GROUP1_COLOR)
-            eq_mobjs.append(eq)
+        eq_mobjs = build_eqs(font)
         max_right = max(-5.8 + e.width for e in eq_mobjs)
         if max_right > 1.3:
             font = 30
-            eq_mobjs = []
-            for entry in model_lines:
-                eq = MathTex(entry["tex"], font_size=font)
-                eq.set_color(TEXT_COLOR)
-                eq.set_color_by_tex("M", HL_COLOR)
-                eq.set_color_by_tex("q", PAIR_COLOR)
-                eq.set_color_by_tex("t_{i", GROUP1_COLOR)
-                eq.set_color_by_tex("y_{i", GROUP1_COLOR)
-                eq_mobjs.append(eq)
+            eq_mobjs = build_eqs(font)
 
+        label_mobjs = []
         captions_for_lines = [
             "Goal: make M as small as possible.",
             "M must be at least every load.",

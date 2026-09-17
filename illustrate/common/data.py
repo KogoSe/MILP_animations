@@ -40,6 +40,21 @@ SCENE08 = {
     ],
 }
 
+# Scene 09 -- Section 2 of scene09_prompt.md (corrected common_prompt.md 5.5)
+SCENE09 = {
+    "t_row1": 1.0,
+    "t_others": 0.437,
+    "group_totals_relaxed": (2240, 2240),
+    "row3_pair_g1": "BC",
+    "row3_share_g1": 0.437,
+    "row3_pair_g2": "BD",
+    "row3_share_g2": 0.563,
+    "row1_pair_splits": {"AB": 0.594, "BC": 0.068, "CD": 0.338},
+    "lb": 746.7,
+    "solution_a_m": 1350,
+    "solution_b_m": 1100,
+}
+
 # Scene 03 -- Section 2 of scene03_prompt.md
 SCENE03 = {
     "row1_kw": 500,

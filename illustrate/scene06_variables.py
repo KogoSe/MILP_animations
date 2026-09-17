@@ -274,13 +274,15 @@ class Scene06Variables(LayoutCheckMixin, Scene):
         staircase.set_points_as_corners([[-2.6, 2.15, 0], [-2.6, cut_y, 0], [-3.2, cut_y, 0]])
         self.play(Create(staircase))
 
-        line1 = MathTex("t_{i,1} = 1", font_size=28, color=TEXT_COLOR)
+        line1 = MathTex("t_{i,1}", "= 1", font_size=28)
+        line1.set_color(TEXT_COLOR)
         line1.set_color_by_tex("t_{i,1}", GROUP1_COLOR)
         line1b = Tex(": row i is in Group 1", font_size=28, color=TEXT_COLOR)
         row_a = VGroup(line1, line1b).arrange(RIGHT, buff=0.15)
         row_a.move_to([-1.2 + row_a.width / 2, 1.6, 0])
 
-        line2 = MathTex("t_{i,1} = 0", font_size=28, color=TEXT_COLOR)
+        line2 = MathTex("t_{i,1}", "= 0", font_size=28)
+        line2.set_color(TEXT_COLOR)
         line2.set_color_by_tex("t_{i,1}", GROUP1_COLOR)
         line2b = Tex(": row i is in a later group", font_size=28, color=TEXT_COLOR)
         row_b = VGroup(line2, line2b).arrange(RIGHT, buff=0.15)
