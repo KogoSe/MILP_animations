@@ -388,7 +388,7 @@ class Scene06Variables(LayoutCheckMixin, Scene):
 
         self.play(
             FadeOut(VGroup(
-                *self._mini_rows, self._cut_line, self._header_t1, *self._t_boxes,
+                *self._mini_rows, self._staircase, self._cut_line, self._header_t1, *self._t_boxes,
                 header_y1, header_y2, *y1_boxes, *y2_boxes, f1, f2, cap,
             )),
         )
